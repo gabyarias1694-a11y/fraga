@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>FRAGA — Gorras Personalizadas</title>
+  <meta name="description" content="FRAGA: Tienda de gorras personalizadas con pagos PayPal."/>
+
+  <style>
+    :root{
+      --azul-petroleo:#0F4C5C;
+      --verde-menta:#9FE2BF;
+      --gris-carbon:#2C2C2C;
+      --blanco-humo:#F5F5F5;
+      --azul-claro:#5DA9E9;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:"Segoe UI",Roboto,Arial,sans-serif;
+      background:var(--blanco-humo);
+      color:var(--gris-carbon);
+      padding:20px;
+    }
+    header{
+      background:var(--azul-petroleo);
+      color:#fff;
+      padding:20px;
+      border-radius:12px;
+      margin-bottom:20px;
+      text-align:center;
+    }
+    header h1{margin:0;font-size:1.8rem;}
+    header p{margin-top:5px;font-weight:300;}
+    select{
+      margin-top:10px;
+      background:#fff;
+      color:var(--gris-carbon);
+      border:1px solid #ccc;
+      border-radius:8px;
+      padding:8px 10px;
+    }
+    #productos{
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+      gap:16px;
+    }
+    .producto{
+      background:#fff;
+      border:1px solid #ddd;
+      border-radius:12px;
+      padding:14px;
+      text-align:center;
+      box-shadow:0 2px 8px rgba(0,0,0,0.08);
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      transition:transform .2s;
+    }
+    .producto:hover{transform:translateY(-4px);}
+    .producto img{
+      width:100%;
+      height:200px;
+      object-fit:cover;
+      border-radius:8px;
+    }
+    .producto h3{margin:10px 0 4px;}
+    .producto p{margin:4px 0;color:#555;}
+    .button{
+      background:var(--azul-petroleo);
+      color:#fff;
+      border:none;
+      border-radius:8px;
+      padding:10px;
+      cursor:pointer;
+      transition:background .3s;
+    }
+    .button:hover{background:#0c3e4b;}
+    .carrito{
+      background:#fff;
+      border-radius:12px;
+      padding:20px;
+      margin-top:30px;
+      box-shadow:0 2px 10px rgba(0,0,0,0.1);
+    }
+    .carrito h2{margin-bottom:10px;}
+    #lista-carrito{list-style:none;padding:0;margin:10px 0;}
+    #lista-carrito li{
+      border:1px solid #ddd;
+      border-radius:8px;
+      padding:10px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:8px;
+      background:#fafafa;
+    }
+    .qty{display:flex;align-items:center;gap:6px;}
+    .qty button{
+      background:var(--azul-petroleo);
+      color:#fff;
+      border:none;
+      border-radius:6px;
+      padding:4px 8px;
+      cursor:pointer;
+    }
+    .remove{
+      background:#dc3545;
+      color:#fff;
+      border:none;
+      border-radius:6px;
+      padding:6px 10px;
+      cursor:pointer;
+    }
+    .totales p{margin:6px 0;}
+    .total{font-weight:bold;font-size:18px;}
+    .acciones{
+      display:flex;
+      gap:10px;
+      margin-top:12px;
+      flex-wrap:wrap;
+    }
+    .vaciar{
+      background:#dc3545;
+      color:#fff;
+      border:none;
+      padding:10px 12px;
+      border-radius:8px;
+      cursor:pointer;
+    }
+    .finalizar{
+      background:var(--azul-claro);
+      color:#fff;
+      border:none;
+      padding:10px 12px;
+      border-radius:8px;
+      cursor:pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>FRAGA</h1>
+    <p>Tu estilo, tu gorra 🧢</p>
+    <div>
+      <label for="categoria">Filtrar por estilo:</label><br>
+      <select id="categoria">
+        <option value="todos">Todos</option>
+        <option value="Snapback">Snapback</option>
+        <option value="Trucker">Trucker</option>
+        <option value="Vintage">Vintage</option>
+        <option value="Deportiva">Deportiva</option>
+        <option value="Minimalista">Minimalista</option>
+      </select>
+    </div>
+  </header>
+
+  <main>
+    <section id="productos"></section>
+
+    <section class="carrito">
+      <h2>🧾 Carrito (<span id="cantidad-carrito">0</span>)</h2>
+      <ul id="lista-carrito"></ul>
+
+      <div class="totales">
+        <p>Subtotal: <strong id="subtotal-text">$0.00</strong></p>
+        <p>Descuento: <strong id="descuento-text">$0.00</strong></p>
+        <p>Impuestos: <strong id="impuestos-text">$0.00</strong></p>
+        <p class="total">Total: <strong id="total-text">$0.00</strong></p>
+      </div>
+
+      <div class="acciones">
+        <button id="btn-vaciar" class="vaciar">🧼 Vaciar</button>
+        <button id="btn-finalizar" class="finalizar">✅ Finalizar</button>
+      </div>
+
+      <div id="paypal-button-container" style="margin-top:15px;display:none;"></div>
+    </section>
+  </main>
+
+  <script src="https://www.paypal.com/sdk/js?client-id=sb&currency=USD"></script>
+  <script>
+    const MONEDA='USD', LOCALE='es-US', TAX_RATE=0.00, DESCUENTO=0.00;
+
+    const productos=[
+      {id:1,nombre:"Gorra Snapback Classic",precio:25.00,categoria:"Snapback",img:"https://images.unsplash.com/photo-1606813902461-3c2b5fcb1b2a?auto=format&fit=crop&w=600&q=80"},
+      {id:2,nombre:"Gorra Trucker Mesh",precio:22.00,categoria:"Trucker",img:"https://images.unsplash.com/photo-1569336415962-a4bd9f69cd7e?auto=format&fit=crop&w=600&q=80"},
+      {id:3,nombre:"Gorra Vintage Denim",precio:28.00,categoria:"Vintage",img:"https://images.unsplash.com/photo-1600181952967-01e4930eac3b?auto=format&fit=crop&w=600&q=80"},
+      {id:4,nombre:"Gorra Deportiva DryFit",precio:26.00,categoria:"Deportiva",img:"https://images.unsplash.com/photo-1601924582975-7ef0d0b3e450?auto=format&fit=crop&w=600&q=80"},
+      {id:5,nombre:"Gorra Minimalista Logo",precio:24.00,categoria:"Minimalista",img:"https://images.unsplash.com/photo-1573878736046-82b4b0c15aa8?auto=format&fit=crop&w=600&q=80"}
+    ];
+
+    let carrito=new Map();
+    const money=new Intl.NumberFormat(LOCALE,{style:'currency',currency:MONEDA});
+    const el={
+      contProds:document.getElementById('productos'),
+      lista:document.getElementById('lista-carrito'),
+      subtotal:document.getElementById('subtotal-text'),
+      impuestos:document.getElementById('impuestos-text'),
+      descuento:document.getElementById('descuento-text'),
+      total:document.getElementById('total-text'),
+      cantidad:document.getElementById('cantidad-carrito'),
+      select:document.getElementById('categoria'),
+      btnVaciar:document.getElementById('btn-vaciar'),
+      btnFinal:document.getElementById('btn-finalizar'),
+      paypal:document.getElementById('paypal-button-container')
+    };
+
+    function renderProductos(lista){
+      el.contProds.innerHTML='';
+      lista.forEach(p=>{
+        const card=document.createElement('div');
+        card.className='producto';
+        card.innerHTML=`
+          <img src="${p.img}" alt="${p.nombre}">
+          <h3>${p.nombre}</h3>
+          <p>Precio: <strong>${money.format(p.precio)}</strong></p>
+          <button class="button" data-add="${p.id}">Agregar al carrito</button>`;
+        el.contProds.appendChild(card);
+      });
+    }
+    function filtrar(){
+      const cat=el.select.value;
+      const data=cat==='todos'?productos:productos.filter(p=>p.categoria===cat);
+      renderProductos(data);
+    }
+
+    function persist(){localStorage.setItem('carrito',JSON.stringify(Array.from(carrito.entries())));}
+    function load(){const data=localStorage.getItem('carrito');if(data)carrito=new Map(JSON.parse(data));}
+
+    function totales(){
+      const subtotal=[...carrito.values()].reduce((a,i)=>a+i.precio*i.cantidad,0);
+      const desc=Math.min(DESCUENTO,subtotal);
+      const base=subtotal-desc;
+      const impuestos=+(base*TAX_RATE).toFixed(2);
+      const total=+(base+impuestos).toFixed(2);
+      const cantidad=[...carrito.values()].reduce((a,i)=>a+i.cantidad,0);
+      return{subtotal,descuento:desc,impuestos,total,cantidad};
+    }
+
+    function pintarCarrito(){
+      el.lista.innerHTML='';
+      carrito.forEach(it=>{
+        const li=document.createElement('li');
+        li.innerHTML=`
+          <span>${it.nombre} — ${money.format(it.precio)}</span>
+          <div class="qty">
+            <button data-dec="${it.id}">−</button>
+            <span>${it.cantidad}</span>
+            <button data-inc="${it.id}">+</button>
+            <button class="remove" data-del="${it.id}">❌</button>
+          </div>`;
+        el.lista.appendChild(li);
+      });
+      const{subtotal,descuento,impuestos,total,cantidad}=totales();
+      el.subtotal.textContent=money.format(subtotal);
+      el.descuento.textContent=money.format(descuento);
+      el.impuestos.textContent=money.format(impuestos);
+      el.total.textContent=money.format(total);
+      el.cantidad.textContent=cantidad;
+      el.paypal.style.display=total>0?'block':'none';
+      renderPayPal(total);
+    }
+
+    function add(id){const p=productos.find(x=>x.id===id);if(!p)return;
+      const it=carrito.get(id);
+      if(it)it.cantidad++;else carrito.set(id,{...p,cantidad:1});
+      persist();pintarCarrito();}
+    function dec(id){const it=carrito.get(id);if(!it)return;
+      it.cantidad--;if(it.cantidad<=0)carrito.delete(id);
+      persist();pintarCarrito();}
+    function del(id){carrito.delete(id);persist();pintarCarrito();}
+
+    let paypalRenderedTotal=null;
+    function renderPayPal(total){
+      if(!window.paypal)return;
+      if(total<=0){paypalRenderedTotal=null;el.paypal.innerHTML='';return;}
+      if(paypalRenderedTotal===total&&el.paypal.childElementCount>0)return;
+      paypalRenderedTotal=total;
+      el.paypal.innerHTML='';
+      paypal.Buttons({
+        style:{layout:'vertical'},
+        createOrder:(data,actions)=>actions.order.create({
+          purchase_units:[{amount:{value:total.toFixed(2),currency_code:MONEDA}}]
+        }),
+        onApprove:(data,actions)=>actions.order.capture().then(d=>{
+          alert(`¡Gracias ${d?.payer?.name?.given_name||'cliente'}! Pago aprobado.`);
+          carrito.clear();persist();pintarCarrito();
+        }),
+        onError:(err)=>{console.error(err);alert('Error con el pago.');}
+      }).render('#paypal-button-container');
+    }
+
+    document.addEventListener('click',e=>{
+      const addBtn=e.target.closest('[data-add]');if(addBtn)add(+addBtn.dataset.add);
+      const incBtn=e.target.closest('[data-inc]');if(incBtn)add(+incBtn.dataset.inc);
+      const decBtn=e.target.closest('[data-dec]');if(decBtn)dec(+decBtn.dataset.dec);
+      const delBtn=e.target.closest('[data-del]');if(delBtn)del(+delBtn.dataset.del);
+    });
+    el.select.addEventListener('change',filtrar);
+    el.btnVaciar.addEventListener('click',()=>{if(confirm('¿Vaciar carrito?')){carrito.clear();persist();pintarCarrito();}});
+    el.btnFinal.addEventListener('click',()=>{if(carrito.size===0)return alert('Carrito vacío.');alert('Compra finalizada ✅');carrito.clear();persist();pintarCarrito();});
+
+    (function init(){renderProductos(productos);load();pintarCarrito();})();
+  </script>
+</body>
+</html>
